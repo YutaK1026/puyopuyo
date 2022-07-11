@@ -101,6 +101,9 @@ class PuyoArrayActive:public PuyoArray{};
 class PuyoControl{
 //盤面に新しいぷよ生成
 public:
+	//着地したぷよの個数を判定する。
+	//2個が着地された、となった時点で新しいぷよを生成する為。
+	int landed_num = 0;
 	void GeneratePuyo(PuyoArrayActive &puyoActive)
 	{
 		
@@ -117,8 +120,8 @@ public:
 	//ぷよの着地判定．着地判定があるとtrueを返す
 	bool LandingPuyo(PuyoArrayActive &puyoActive,PuyoArrayStack &puyoStack)
 	{
+		
 		bool landed = false;
-
 		for (int y = 0; y < puyoActive.GetLine(); y++)
 		{
 			for (int x = 0; x < puyoActive.GetColumn(); x++)
@@ -128,11 +131,17 @@ public:
 				//今後回転機能を追加していくにあたり、回転を考慮して上方向にもぷよが存在するか否かに応じた判定を追加する必要がある。
 				if (puyoActive.GetValue(y, x) != NONE && (y == puyoActive.GetLine() - 1 || 
 					(puyoStack.GetValue(y+1, x) != NONE || 
+					//左側にぷよがあるぷよに関しての着地判定は、まだ右側のぷよの着地判定がなされていないのでpuyoActiveを参照する必要がある。
 					(puyoStack.GetValue(y+1, x+1) != NONE && puyoActive.GetValue(y, x+1) != NONE) || 
-					(puyoStack.GetValue(y+1, x-1) != NONE && puyoActive.GetValue(y, x-1) != NONE))))
+					//左側にぷよがあるぷよに関しての着地判定は、左側から順に着地判定をするため、puyoStackを参照する必要がある。
+					(puyoStack.GetValue(y+1, x-1) != NONE && puyoStack.GetValue(y, x-1) != NONE))))
 				{
-					landed = true;
-					//PuyoArrayzzz
+					landed_num++;
+					//2個着地したら、trueを返して初期化する
+					if (landed_num==2){
+						landed = true;
+						landed_num = 0;
+					}
 					puyoStack.SetValue(y,x,puyoActive.GetValue(y,x));
 					//着地判定されたぷよを、PuyoArrayActive(動かせるぷよ)から削除する
 					puyoActive.SetValue(y, x, NONE);
