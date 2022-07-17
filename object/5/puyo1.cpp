@@ -259,34 +259,52 @@ public:
 		puyoActive.SetValue(0, 6, newpuyo2);
 	}
 	//ぷよの着地判定．着地判定があるとtrueを返す
-	bool LandingPuyo(PuyoArrayActive &puyoActive,PuyoArrayStack &puyoStack)
-	{
-		
-		bool landed = false;
-		for (int y = 0; y < puyoActive.GetLine(); y++)
-		{
-			for (int x = 0; x < puyoActive.GetColumn(); x++)
-			{
-				//ぷよが着地するか否かの判定を行う。
-				//隣にぷよが存在する場合、隣のぷよの下にぷよがあれば停止する必要がある為その旨の記述も行った
-				//今後回転機能を追加していくにあたり、回転を考慮して上方向にもぷよが存在するか否かに応じた判定を追加する必要がある。
-				if (puyoActive.GetValue(y, x) != NONE && (y == puyoActive.GetLine() - 1 || 
-					(puyoStack.GetValue(y+1, x) != NONE || 
-					//左側にぷよがあるぷよに関しての着地判定は、まだ右側のぷよの着地判定がなされていないのでpuyoActiveを参照する必要がある。
-					((puyoStack.GetValue(y+1, x+1) != NONE && puyoActive.GetValue(y, x+1) != NONE) || 
-					//左側にぷよがあるぷよに関しての着地判定は、左側から順に着地判定をするため、puyoStackを参照する必要がある。
-					(puyoStack.GetValue(y+1, x-1) != NONE && (puyoStack.GetValue(y, x-1) != NONE && puyoActive.GetValue(y, x+1) == NONE))))))
-				{	
-					landed = true;
-					puyoStack.SetValue(y,x,puyoActive.GetValue(y,x));
-					//着地判定されたぷよを、PuyoArrayActive(動かせるぷよ)から削除する
-					puyoActive.SetValue(y, x, NONE);
-				}
-			}
-		}
+	bool LandingPuyo(PuyoArrayActive& puyoActive, PuyoArrayStack& puyoStack)
+  {
+    bool landed,moveFlag = false;
+	//ぷよが動いているかのフラグを追加。moveFlag
+    for (int y = 0; y < puyoActive.GetLine(); y++)
+      {
+	for (int x = 0; x < puyoActive.GetColumn(); x++)
+	  {
+	    if (puyoActive.GetValue(y, x) != NONE && (y == puyoActive.GetLine() - 1 || puyoStack.GetValue(y+1, x) != NONE))
+	    {
+		puyoStack.SetValue(y, x, puyoActive.GetValue(y, x));
+		//着地したぷよは、Activeからは削除し、同様のデータを持つぷよをStackに新規追加する。
+		puyoActive.SetValue(y, x, NONE);
+		landed = true;
 
-		return landed;
+		//停止したぷよの周りに、Active状態のぷよがあるか否かの処理
+		if (puyoActive.GetValue(y-1, x) != NONE) {
+			puyoStack.SetValue(y-1, x, puyoActive.GetValue(y-1, x));
+			puyoActive.SetValue(y-1, x, NONE);
+			landed = true;
+			moveFlag = false;
+		} else if (puyoActive.GetValue(y, x-1) != NONE) {
+			puyoStack.SetValue(y, x-1, puyoActive.GetValue(y, x-1));
+			puyoActive.SetValue(y, x-1, NONE);
+			landed = true;
+			moveFlag = false;
+		} else if (puyoActive.GetValue(y, x+1) != NONE) {
+			puyoStack.SetValue(y, x+1, puyoActive.GetValue(y, x+1));
+			puyoActive.SetValue(y, x+1, NONE);
+			landed = true;
+			moveFlag = false;
+		}
+ 	    } else if (puyoActive.GetValue(y, x) != NONE && puyoStack.GetValue(y+1, x) == NONE){
+			landed = false;
+			//動いているぷよがある時の処理
+			moveFlag = true;
+	    }
+	  }
+    }
+	//着地判定を返す際、まだぷよが動いていれば確定でfalseを返す。(generatePuyoの発火をふせぐ)
+    if (moveFlag){
+		return false;
+    }else{
+    	return landed;
 	}
+  }
 	//下にぷよが無い判定を返す
 	//下にぷよが無ければ、そのぷよを、下にぷよあるいは地面があるところまで落とす。
 	bool DropPuyo(PuyoArrayStack &puyoStack){
@@ -306,6 +324,7 @@ public:
 				}
 			}
 		}
+		//関数が発火したかどうかの判定を返す
 		return drop;
 	}
 	//左移動
