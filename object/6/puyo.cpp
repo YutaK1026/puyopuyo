@@ -236,9 +236,53 @@ public:
 	//もし一つでも動いているぷよがあればfalseを返す（ganeratePuyoを発火させないため）
     if (activeFlag)
     {
-	return false;
+		return false;
     }
     return landed;
+  }
+  void stackDown(PuyoArrayStack& stack)
+  {
+    //一時的格納場所メモリ確保
+	puyocolor *puyo_temp = new puyocolor[stack.GetLine()*stack.GetColumn()];
+
+	for (int i = 0; i < stack.GetLine()*stack.GetColumn(); i++)
+	  {
+	    puyo_temp[i] = NONE;
+	  }
+	
+	//1つ下の位置にpuyoactiveからpuyo_tempへとコピー
+	for (int y = stack.GetLine() - 1; y >= 0; y--)
+	  {
+	    for (int x = 0; x < stack.GetColumn(); x++)
+	      {
+		if (stack.GetValue(y, x) == NONE) {
+		  continue;
+		}
+		
+		if (y < stack.GetLine() - 1 && stack.GetValue(y + 1, x) == NONE)
+		  {
+		    puyo_temp[(y + 1)*stack.GetColumn() + x] = stack.GetValue(y, x);
+		    //コピー後に元位置のpuyoactiveのデータは消す
+		    stack.SetValue(y, x, NONE);
+		  }
+		else
+		  {
+		    puyo_temp[y*stack.GetColumn() + x] = stack.GetValue(y, x);
+		  }
+	      }
+	  }
+
+	//puyo_tempからpuyoactiveへコピー
+	for (int y = 0; y < stack.GetLine(); y++)
+	  {
+	    for (int x = 0; x < stack.GetColumn(); x++)
+	      {
+		stack.SetValue(y, x, puyo_temp[y*stack.GetColumn() + x]);
+	      }
+	  }
+
+	//一時的格納場所メモリ解放
+	delete[] puyo_temp;
   }
 
   //左移動
@@ -857,14 +901,14 @@ int main(int argc, char **argv){
 	timeout(0);
 
 	//インスタンス作成
-	PuyoArrayActive active;
-	PuyoArrayStack stack;
+	PuyoArrayActive puyoActive;
+	PuyoArrayStack puyoStack;
 	PuyoControl control;
 	
 	//初期化処理
-	active.ChangeSize(LINES/2, COLS/2);	//フィールドは画面サイズの縦横1/2にする
-	stack.ChangeSize(LINES/2, COLS/2);  //stackの盤面も作る
-	control.GeneratePuyo(active);	//最初のぷよ生成
+	puyoActive.ChangeSize(LINES/2, COLS/2);	//フィールドは画面サイズの縦横1/2にする
+	puyoStack.ChangeSize(LINES/2, COLS/2);  //stackの盤面も作る
+	control.GeneratePuyo(puyoActive);	//最初のぷよ生成
 
 	int delay = 0;
 	int waitCount = 20000;
@@ -889,13 +933,13 @@ int main(int argc, char **argv){
 		switch (ch)
 		{
 		case KEY_LEFT:
-		  control.MoveLeft(active, stack);
+		  control.MoveLeft(puyoActive, puyoStack);
 			break;
 		case KEY_RIGHT:
-		  control.MoveRight(active, stack);
+		  control.MoveRight(puyoActive, puyoStack);
 			break;
 		case 'z':
-		  control.Rotate(active);
+		  control.Rotate(puyoActive);
 			break;
 		default:
 			break;
@@ -905,29 +949,29 @@ int main(int argc, char **argv){
 		//処理速度調整のためのif文
 		if (delay%waitCount == 0){
 			//ぷよ下に移動
-		    control.MoveDown(active);
+		    control.MoveDown(puyoActive);
 			
 			//ぷよ着地判定
-			if (control.LandingPuyo(active, stack))
+			if (control.LandingPuyo(puyoActive, puyoStack))
 			{
 			    //Puyoが4つ以上つながったら削除
-			    control.VanishPuyo(stack);
+			    control.VanishPuyo(puyoStack);
 			}
 			//浮いているぷよがあったら強制的に落とす
-			if (control.CheckStack(stack)){
-				control.StackDown(stack);
+			if (control.CheckStack(puyoStack)){
+				control.StackDown(puyoStack);
 			} else {
 				//Puyoが4つ以上つながったら削除
-				control.VanishPuyo(stack);
+				control.VanishPuyo(puyoStack);
 				//全ての着地してかつ動いているぷよが無かったら新しいぷよ生成
-				if (control.CheckActive(active) == false){
-					control.GeneratePuyo(active);
+				if (control.CheckActive(puyoActive) == false){
+					control.GeneratePuyo(puyoActive);
 				}
 			}
 		}
 		delay++;
 		//表示
-		Display(active, stack);
+		Display(puyoActive, puyoStack);
 	}
 
 
