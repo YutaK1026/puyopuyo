@@ -474,6 +474,7 @@ public:
 				break;
 			}else{
 				//回転後の位置にぷよを置く
+				//回転する向きは変えずに、上方向にずらす
 				puyoactive.SetValue(puyo1_y, puyo1_x+1, puyo1);
 				puyoactive.SetValue(puyo2_y + 1, puyo2_x, puyo2);
 				//次の回転パターンの設定
