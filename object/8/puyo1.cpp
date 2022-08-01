@@ -844,7 +844,7 @@ void Display(PuyoArrayActive &puyoActive,PuyoArrayStack &puyoStack, int counted)
 
 
 //ここから実行される
-
+int counted = 0;
 int main(int argc, char **argv){
 	//PuyoArrayActive, PuyoArrayStackともに初期化
 	PuyoArrayActive puyoActive;
@@ -878,7 +878,7 @@ int main(int argc, char **argv){
 	int waitCount = 20000;
 
 	int puyostate = 0;
-	int counted = 0;
+	
 
 
 	//メイン処理ループ
