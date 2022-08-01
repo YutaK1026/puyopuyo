@@ -3,6 +3,7 @@
 
 #include <curses.h>
 #include <cstdlib>
+#include <time.h>
 
 //ぷよの色を表すの列挙型
 //NONEが無し，RED,BLUE,..が色を表す
@@ -17,8 +18,8 @@ class PuyoArray{
 			if (data == NULL) {
 				return;
 			}
-		delete[] data;
-		data = NULL;
+			delete[] data;
+			data = NULL;
 		};
 	public:
 		PuyoArray(){
@@ -76,6 +77,8 @@ class PuyoArray{
 //ランダムにぷよを選ぶ
 enum puyocolor GenerateRandom()
 {
+	std::srand(time(NULL));
+
 	int num = rand () % 4 + 1;
 	//非ボイド関数エラーの終了に達する制御解決の為
 	puyocolor puyo;
@@ -261,15 +264,44 @@ public:
 	//着地したぷよの個数を判定する。
 	//2個が着地された、となった時点で新しいぷよを生成する為。
 	int landed_num = 0;
+	int num_puyo1,num_puyo2 = 0;
 	void GeneratePuyo(PuyoArrayActive &puyoActive)
 	{
+		std::srand(time(NULL));
+		puyocolor newpuyo1,newpuyo2;
+		num_puyo1 = rand () % 4 + 1;
+		//非ボイド関数エラーの終了に達する制御解決の為
+		switch (num_puyo1) {
+			case 1:
+				newpuyo1 = RED;
+				break;
+			case 2:
+				newpuyo1 = BLUE;
+				break;
+			case 3:
+				newpuyo1 = GREEN;
+				break;
+			case 4:
+				newpuyo1 = YELLOW;
+				break;
+		}
+		num_puyo2 = rand () % 4 + 1;
+		//非ボイド関数エラーの終了に達する制御解決の為
+		switch (num_puyo2) {
+			case 1:
+				newpuyo2 = RED;
+				break;
+			case 2:
+				newpuyo2 = BLUE;
+				break;
+			case 3:
+				newpuyo2 = GREEN;
+				break;
+			case 4:
+				newpuyo2 = YELLOW;
+				break;
+		}
 		
-		puyocolor newpuyo1;
-
-		newpuyo1 = GenerateRandom();
-
-		puyocolor newpuyo2;
-		newpuyo2 = GenerateRandom();
 		//Rotateを0に設定
     	puyoActive.SetRotate(0);
 
@@ -560,7 +592,7 @@ public:
 		}
 	}
 	//下に落下する
-	void MoveDown(PuyoArrayActive &puyoActive ,PuyoArrayStack &puyoStack)
+	void ForceMoveDown(PuyoArrayActive &puyoActive ,PuyoArrayStack &puyoStack)
 	{
 		bool landed = false;
 		for (int y = 0; y < puyoActive.GetLine(); y++)
@@ -725,7 +757,7 @@ public:
 };
 //表示
 
-void Display(PuyoArrayActive &puyoActive,PuyoArrayStack &puyoStack)
+void Display(PuyoArrayActive &puyoActive,PuyoArrayStack &puyoStack, int counted)
 {
 	//PuyoArray puyo(NULL,0,0);
 	//色指定
@@ -802,21 +834,9 @@ void Display(PuyoArrayActive &puyoActive,PuyoArrayStack &puyoStack)
 		}
 	}
 	
-	//情報表示
-	int count = 0;
-	for (int y = 0; y < puyoActive.GetLine(); y++)
-	{
-		for (int x = 0; x < puyoActive.GetColumn(); x++)
-		{
-			if (puyoActive.GetValue(y, x) != NONE)
-			{
-				count++;
-			}
-		}
-	}
 
 	char msg[256];
-	sprintf(msg, "Field: %d x %d, Puyo number: %03d", puyoActive.GetLine(), puyoActive.GetColumn(), count);
+	sprintf(msg, "Field: %d x %d, Puyo number: %03d", puyoActive.GetLine(), puyoActive.GetColumn(), counted);
 	mvaddstr(2, COLS - 35, msg);
 
 	refresh();
@@ -858,6 +878,7 @@ int main(int argc, char **argv){
 	int waitCount = 20000;
 
 	int puyostate = 0;
+	int counted = 0;
 
 
 	//メイン処理ループ
@@ -882,7 +903,8 @@ int main(int argc, char **argv){
 			control.MoveRight(puyoActive);
 			break;
 		case KEY_DOWN:
-			control.MoveDown(puyoActive,puyoStack);
+			//control.ForceMoveDown(puyoActive,puyoStack);
+			waitCount = 5000;
 			break;
 		case 'z':
 			//ぷよ回転処理
@@ -910,6 +932,7 @@ int main(int argc, char **argv){
 				control.DropPuyo(puyoStack);
 			}else{
 				//Puyoが4つ以上つながったら削除
+				counted += control.VanishPuyo(puyoStack);
 				control.VanishPuyo(puyoStack);
 				//全ての着地してかつ動いているぷよが無かったら新しいぷよ生成
 				if (control.checkActive(puyoActive) == false)
@@ -921,7 +944,7 @@ int main(int argc, char **argv){
 		delay++;
 
 		//表示
-		Display(puyoActive,puyoStack);
+		Display(puyoActive,puyoStack,counted);
 	}
 
 	//画面をリセット
