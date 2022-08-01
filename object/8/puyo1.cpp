@@ -559,6 +559,32 @@ public:
 			break;
 		}
 	}
+	//下に落下する
+	void MoveDown(PuyoArrayActive &puyoActive ,PuyoArrayStack &puyoStack)
+	{
+		bool landed = false;
+		for (int y = 0; y < puyoActive.GetLine(); y++)
+		{
+			for (int x = 0; x < puyoActive.GetColumn(); x++)
+			{
+				if (puyoActive.GetValue(y,x) != NONE){
+					for (int i = y; i < puyoActive.GetLine(); i++){
+						if(puyoStack.GetValue(i,x) != NONE){
+							puyoStack.SetValue(i-1,x,puyoActive.GetValue(y,x));
+							puyoActive.SetValue(y,x,NONE);
+							landed = true;
+							break;
+						}
+					}
+					if (puyoActive.GetValue(y,x) != NONE){
+						puyoStack.SetValue(puyoActive.GetLine()-1,x,puyoActive.GetValue(y,x));
+						puyoActive.SetValue(y,x,NONE);
+						landed = true;
+					}
+				}
+			}
+		}
+	}
 	
 	//左移動
 	void MoveLeft(PuyoArrayActive &puyoActive)
@@ -605,7 +631,6 @@ public:
 		//一時的格納場所メモリ解放
 		delete[] puyo_temp;
 	}
-
 	//右移動
 	void MoveRight(PuyoArrayActive &puyoActive)
 	{
@@ -847,7 +872,6 @@ int main(int argc, char **argv){
 		{
 			break;
 		}
-
 		//入力キーごとの処理
 		switch (ch)
 		{
@@ -856,6 +880,9 @@ int main(int argc, char **argv){
 			break;
 		case KEY_RIGHT:
 			control.MoveRight(puyoActive);
+			break;
+		case KEY_DOWN:
+			control.MoveDown(puyoActive,puyoStack);
 			break;
 		case 'z':
 			//ぷよ回転処理
@@ -868,6 +895,7 @@ int main(int argc, char **argv){
 
 		//処理速度調整のためのif文
 		if (delay%waitCount == 0){
+			waitCount = 20000;
 			//ぷよ下に移動
 			control.MoveDown(puyoActive);
 			
