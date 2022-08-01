@@ -8,11 +8,37 @@
 //NONEが無し，RED,BLUE,..が色を表す
 enum puyocolor { NONE, RED, BLUE, GREEN, YELLOW };
 
+
+//ランダムにぷよを選ぶ
+enum puyocolor GenerateRandom()
+{
+	int num = rand () % 4 + 1;
+	//非ボイド関数エラーの終了に達する制御解決の為
+	puyocolor puyo;
+	switch (num) {
+		case 1:
+			puyo = RED;
+			break;
+		case 2:
+			puyo = BLUE;
+			break;
+		case 3:
+			puyo = GREEN;
+			break;
+		case 4:
+			puyo = YELLOW;
+			break;
+	}
+	return puyo;
+}
+
 class PuyoArray{
 	private:
 		puyocolor *data;
 		unsigned int data_line;
 		unsigned int data_column;
+		puyocolor nextpuyo1;
+		puyocolor nextpuyo2;
 		void Release(){
 			if (data == NULL) {
 				return;
@@ -21,13 +47,22 @@ class PuyoArray{
 		data = NULL;
 		};
 	public:
+		
 		PuyoArray(){
 			data = NULL;
 			data_line = 0;
 			data_column = 0;
+			nextpuyo1,nextpuyo2 = NONE;
 		}
 		~PuyoArray(){
 			Release();
+		}
+		puyocolor nextPuyo()
+		{
+			Release();
+			nextpuyo1 = GenerateRandom();
+			nextpuyo2 = GenerateRandom();
+			return nextpuyo1,nextpuyo2;
 		}
 		void ChangeSize(unsigned int line, unsigned int column)
 		{
@@ -73,28 +108,6 @@ class PuyoArray{
 		}
 };
 
-//ランダムにぷよを選ぶ
-enum puyocolor GenerateRandom()
-{
-	int num = rand () % 4 + 1;
-	//非ボイド関数エラーの終了に達する制御解決の為
-	puyocolor puyo;
-	switch (num) {
-		case 1:
-			puyo = RED;
-			break;
-		case 2:
-			puyo = BLUE;
-			break;
-		case 3:
-			puyo = GREEN;
-			break;
-		case 4:
-			puyo = YELLOW;
-			break;
-	}
-	return puyo;
-}
 class PuyoArrayStack:public PuyoArray{};
 class PuyoArrayActive:public PuyoArray{
 	private:
@@ -270,12 +283,27 @@ public:
 
 		puyocolor newpuyo2;
 		newpuyo2 = GenerateRandom();
+
 		//Rotateを0に設定
     	puyoActive.SetRotate(0);
 
 		puyoActive.SetValue(0, 5, newpuyo1);
 		puyoActive.SetValue(0, 6, newpuyo2);
+		
 	}
+	void nextGeneratePuyo(PuyoArrayActive &puyoActive, PuyoArray puyoarray)
+	{
+		puyocolor nextpuyo1,nextpuyo2;
+		nextpuyo1,nextpuyo2 = puyoarray.nextPuyo();
+		
+		//Rotateを0に設定
+    	puyoActive.SetRotate(0);
+
+		puyoActive.SetValue(0, 5, nextpuyo1);
+		puyoActive.SetValue(0, 6, nextpuyo2);
+		
+	}
+	
 	//浮いてるstackぷよがあるかどうかの判定
 	bool checkStack(PuyoArrayStack& puyoStack)
 	{
@@ -560,6 +588,8 @@ public:
 		}
 	}
 	//下に落下する
+	//KEY_DOWNを押すと、自動的にぷよを一番下まで落下させるようにした
+	//加速でも良かったが、個人的にこちらの方がゲームが楽しかったからこうした
 	void MoveDown(PuyoArrayActive &puyoActive ,PuyoArrayStack &puyoStack)
 	{
 		bool landed = false;
@@ -725,8 +755,9 @@ public:
 };
 //表示
 
-void Display(PuyoArrayActive &puyoActive,PuyoArrayStack &puyoStack)
+void Display(PuyoArrayActive &puyoActive,PuyoArrayStack &puyoStack, int counted)
 {
+	
 	//PuyoArray puyo(NULL,0,0);
 	//色指定
 	init_pair(0, COLOR_WHITE, COLOR_BLACK);
@@ -803,20 +834,9 @@ void Display(PuyoArrayActive &puyoActive,PuyoArrayStack &puyoStack)
 	}
 	
 	//情報表示
-	int count = 0;
-	for (int y = 0; y < puyoActive.GetLine(); y++)
-	{
-		for (int x = 0; x < puyoActive.GetColumn(); x++)
-		{
-			if (puyoActive.GetValue(y, x) != NONE)
-			{
-				count++;
-			}
-		}
-	}
 
 	char msg[256];
-	sprintf(msg, "Field: %d x %d, Puyo number: %03d", puyoActive.GetLine(), puyoActive.GetColumn(), count);
+	sprintf(msg, "Field: %d x %d, Puyo number: %03d", puyoActive.GetLine(), puyoActive.GetColumn(), counted);
 	mvaddstr(2, COLS - 35, msg);
 
 	refresh();
@@ -830,6 +850,7 @@ int main(int argc, char **argv){
 	PuyoArrayActive puyoActive;
 	PuyoArrayStack puyoStack;
 	PuyoControl control;
+	PuyoArray puyoarray;
 	//画面の初期化
 	initscr();
 	//カラー属性を扱うための初期化
@@ -858,7 +879,7 @@ int main(int argc, char **argv){
 	int waitCount = 20000;
 
 	int puyostate = 0;
-
+	int counted = 0;
 
 	//メイン処理ループ
 	while (1)
@@ -883,6 +904,7 @@ int main(int argc, char **argv){
 			break;
 		case KEY_DOWN:
 			control.MoveDown(puyoActive,puyoStack);
+			//加速であれば、"waitCount = 2000;"を記述
 			break;
 		case 'z':
 			//ぷよ回転処理
@@ -909,19 +931,20 @@ int main(int argc, char **argv){
 				//一つずつぷよを下に落下させる。
 				control.DropPuyo(puyoStack);
 			}else{
+				counted += control.VanishPuyo(puyoStack);
 				//Puyoが4つ以上つながったら削除
 				control.VanishPuyo(puyoStack);
 				//全ての着地してかつ動いているぷよが無かったら新しいぷよ生成
 				if (control.checkActive(puyoActive) == false)
 				{
-					control.GeneratePuyo(puyoActive);
+					control.nextGeneratePuyo(puyoActive,puyoarray);
 				}
 			}
 		}
 		delay++;
 
 		//表示
-		Display(puyoActive,puyoStack);
+		Display(puyoActive,puyoStack,counted);
 	}
 
 	//画面をリセット
