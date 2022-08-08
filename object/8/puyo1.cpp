@@ -120,7 +120,9 @@ class PuyoArrayActive:public PuyoArray{
 class PuyoControl{
 //盤面に新しいぷよ生成
 public:
-	
+	int landed_num = 0;
+	int num_puyo1,num_puyo2 = 0;
+	puyocolor newpuyo1,newpuyo2;
 	//ぷよ消滅処理を全座標で行う
 	//消滅したぷよの数を返す
 	int VanishPuyo(PuyoArrayStack &puyostack)
@@ -263,12 +265,9 @@ public:
 
 	//着地したぷよの個数を判定する。
 	//2個が着地された、となった時点で新しいぷよを生成する為。
-	int landed_num = 0;
-	int num_puyo1,num_puyo2 = 0;
 	void GeneratePuyo(PuyoArrayActive &puyoActive)
 	{
 		std::srand(time(NULL));
-		puyocolor newpuyo1,newpuyo2;
 		num_puyo1 = rand () % 4 + 1;
 		//非ボイド関数エラーの終了に達する制御解決の為
 		switch (num_puyo1) {
@@ -304,7 +303,6 @@ public:
 		
 		//Rotateを0に設定
     	puyoActive.SetRotate(0);
-
 		puyoActive.SetValue(0, 5, newpuyo1);
 		puyoActive.SetValue(0, 6, newpuyo2);
 	}
@@ -836,7 +834,7 @@ void Display(PuyoArrayActive &puyoActive,PuyoArrayStack &puyoStack, int counted)
 	
 
 	char msg[256];
-	sprintf(msg, "Field: %d x %d, Puyo number: %03d", puyoActive.GetLine(), puyoActive.GetColumn(), counted);
+	sprintf(msg, "Field: %d x %d, Puyo number: %03d" , puyoActive.GetLine(), puyoActive.GetColumn(), counted);
 	mvaddstr(2, COLS - 35, msg);
 
 	refresh();
@@ -866,7 +864,7 @@ int main(int argc, char **argv){
 
 	//キー入力非ブロッキングモード
 	timeout(0);
-
+	
 
 	//初期化処理
 	puyoStack.ChangeSize(LINES/2, COLS/2);	//フィールドは画面サイズの縦横1/2にする
@@ -879,7 +877,6 @@ int main(int argc, char **argv){
 
 	int puyostate = 0;
 	
-
 
 	//メイン処理ループ
 	while (1)
@@ -924,7 +921,7 @@ int main(int argc, char **argv){
 			//ぷよ着地判定
 			if (control.LandingPuyo(puyoActive,puyoStack))
 			{
-				control.VanishPuyo(puyoStack);
+				counted += control.VanishPuyo(puyoStack);
 			}
 			if (control.checkStack(puyoStack))
 			{
@@ -933,7 +930,6 @@ int main(int argc, char **argv){
 			}else{
 				//Puyoが4つ以上つながったら削除
 				counted += control.VanishPuyo(puyoStack);
-				control.VanishPuyo(puyoStack);
 				//全ての着地してかつ動いているぷよが無かったら新しいぷよ生成
 				if (control.checkActive(puyoActive) == false)
 				{
