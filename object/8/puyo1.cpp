@@ -900,7 +900,7 @@ int main(int argc, char **argv){
 			control.MoveRight(puyoActive);
 			break;
 		case KEY_DOWN:
-			//control.ForceMoveDown(puyoActive,puyoStack);
+			//おすとぷよの落下速度が加速する
 			waitCount = 5000;
 			break;
 		case 'z':
